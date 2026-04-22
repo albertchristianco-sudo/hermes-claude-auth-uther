@@ -57,10 +57,54 @@ Installed through a `sitecustomize.py` MetaPathFinder hook, so it runs at interp
 - Depends on `build_anthropic_kwargs(is_oauth=...)` in `agent.anthropic_adapter`, so it may need updating if hermes-agent changes that interface
 
 ## Troubleshooting
+
+### Install issues
 - **"hermes-agent not found"**: Make sure Hermes is installed at `~/.hermes/hermes-agent/`
 - **"No virtualenv found"**: Set `HERMES_VENV` to point to your venv
 - **Patch not loading**: Check `journalctl --user -u hermes-gateway -n 50` for `[anthropic_billing_bypass]` or `[hermes-claude-auth]` messages
-- **HTTP 400 persists**: The billing salt may have been rotated by Anthropic. Check for updates to this repo.
+
+### Auth issues
+
+- **`Anthropic 401 authentication failed`** or **`No Anthropic credentials found`**: Hermes reads Claude subscription credentials from `~/.claude/.credentials.json`. If Claude Code is authenticated (e.g. in macOS Keychain) but that file is missing or stale, Hermes fails even when Claude Code itself works. Fix:
+
+  1. Refresh Claude subscription login:
+     ```bash
+     claude auth login --claudeai
+     ```
+  2. **macOS only** — mirror the Keychain `Claude Code-credentials` entry into the file Hermes reads:
+     ```bash
+     python3 - <<'PY'
+     import subprocess
+     from pathlib import Path
+
+     secret = subprocess.check_output(
+         ['security', 'find-generic-password', '-s', 'Claude Code-credentials', '-w'],
+         text=True,
+     ).strip()
+
+     cred_path = Path.home() / '.claude' / '.credentials.json'
+     cred_path.parent.mkdir(parents=True, exist_ok=True)
+     cred_path.write_text(secret)
+     cred_path.chmod(0o600)
+     print(f'wrote {cred_path}')
+     PY
+     ```
+  3. Remove stale `ANTHROPIC_TOKEN` / `ANTHROPIC_API_KEY` values from `~/.hermes/.env` — they can override subscription auth.
+  4. Reset cached credentials:
+     ```bash
+     hermes auth reset anthropic
+     ```
+  5. Retry with a smoke test:
+     ```bash
+     hermes chat -q 'Reply with exactly: AUTH TEST OK' --provider anthropic -m claude-sonnet-4-6 -Q
+     ```
+
+  Credit: this macOS Keychain mirror step was written up by [@DrQbz](https://github.com/DrQbz) in [issue #5](https://github.com/kristianvast/hermes-claude-auth/issues/5).
+
+### Billing / routing issues
+
+- **HTTP 400: "Third-party apps now draw from your extra usage, not your plan limits"**: Anthropic's server-side validation has classified your requests as third-party and routed them to pay-per-token credits instead of your Max/Pro plan. Make sure you're on the latest version of this patch (it tracks the upstream [opencode-claude-auth](https://github.com/griffinmartin/opencode-claude-auth) fingerprint changes). Reinstall with `./install.sh` and restart `hermes-gateway`. If the error persists after update, the bypass is currently broken upstream too — track [issue #6](https://github.com/kristianvast/hermes-claude-auth/issues/6) for status.
+- **HTTP 400 persists after update**: The billing salt or signature format may have been rotated by Anthropic again. Check for newer commits to this repo.
 
 ## Credits
 - [griffinmartin/opencode-claude-auth](https://github.com/griffinmartin/opencode-claude-auth), the original TypeScript implementation for opencode (MIT)
