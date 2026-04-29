@@ -92,6 +92,9 @@ Version history
   ``~/.claude/.credentials.json`` on Darwin hosts, so the oneliner works
   end-to-end on macOS without a manual post-install step.  Bypass module
   itself is unchanged; version bump tracks the release.
+- 1.1.3 (2026-04-29): Reverted ``_BILLING_ENTRYPOINT`` from ``sdk-cli`` back to ``cli``.
+  Claude Code's actual binary defaults to ``CLAUDE_CODE_ENTRYPOINT ?? "cli"``.
+  Sending ``sdk-cli`` was causing the validator to classify requests as third-party.
 - 1.1.2 (2026-04-29): Updated ``_STAINLESS_NODE_VERSION`` from ``v22.11.0``
   to ``v24.3.0`` to match Claude Code 2.1.119.  The binary ships with Bun
   1.3.13, which reports ``node/v24.3.0`` in its HTTP user-agent and sets
@@ -101,7 +104,7 @@ Version history
 
 from __future__ import annotations
 
-__version__ = "1.1.2"
+__version__ = "1.1.3"
 
 import hashlib
 import inspect
@@ -124,7 +127,7 @@ _BILLING_SALT = "59cf53e54c78"
 # Billing entrypoint — Claude Code 2.1.112+ reports ``sdk-cli`` instead of the
 # legacy ``cli`` value.  Anthropic's validator matches this against the
 # x-stainless-* headers; a mismatch routes the request to third-party billing.
-_BILLING_ENTRYPOINT = "sdk-cli"
+_BILLING_ENTRYPOINT = "cli"
 
 # Sentinel strings — entries in system[] starting with these are kept;
 # everything else is relocated to the first user message.
