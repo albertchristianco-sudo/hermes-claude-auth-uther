@@ -82,7 +82,12 @@ if [ "$(uname -s)" = "Darwin" ]; then
     fi
 fi
 
-if systemctl --user is-active hermes-gateway.service >/dev/null 2>&1; then
+GATEWAY_PLIST="$HOME/Library/LaunchAgents/ai.hermes.gateway.plist"
+if [ "$(uname -s)" = "Darwin" ] && [ -f "$GATEWAY_PLIST" ]; then
+    launchctl unload "$GATEWAY_PLIST" 2>/dev/null || true
+    launchctl load "$GATEWAY_PLIST"
+    printf "${GREEN}[✓] Restarted hermes-gateway via launchctl${RESET}\n"
+elif systemctl --user is-active hermes-gateway.service >/dev/null 2>&1; then
     systemctl --user restart hermes-gateway.service
     printf "${GREEN}[✓] Restarted hermes-gateway.service${RESET}\n"
 else

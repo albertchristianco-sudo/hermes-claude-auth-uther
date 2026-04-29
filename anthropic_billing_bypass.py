@@ -92,11 +92,16 @@ Version history
   ``~/.claude/.credentials.json`` on Darwin hosts, so the oneliner works
   end-to-end on macOS without a manual post-install step.  Bypass module
   itself is unchanged; version bump tracks the release.
+- 1.1.2 (2026-04-29): Updated ``_STAINLESS_NODE_VERSION`` from ``v22.11.0``
+  to ``v24.3.0`` to match Claude Code 2.1.119.  The binary ships with Bun
+  1.3.13, which reports ``node/v24.3.0`` in its HTTP user-agent and sets
+  ``process.version`` accordingly.  The previous value no longer matched
+  what Anthropic's validator sees from real Claude Code clients.
 """
 
 from __future__ import annotations
 
-__version__ = "1.1.1"
+__version__ = "1.1.2"
 
 import hashlib
 import inspect
@@ -134,9 +139,10 @@ _MCP_PREFIX = "mcp_"
 # @anthropic-ai/sdk@0.81.0 as of 2.1.112 — we spoof the same value.
 _STAINLESS_PACKAGE_VERSION = "0.81.0"
 
-# Node runtime version Claude Code 2.1.112 runs under.  We send a recent LTS
-# value rather than our actual Python version (which would give us away).
-_STAINLESS_NODE_VERSION = "v22.11.0"
+# Node runtime version Claude Code 2.1.119 runs under.  Claude Code ships as a
+# Bun-compiled binary; Bun 1.3.13 reports "node/v24.3.0" in its user-agent and
+# sets globalThis.process.version = "v24.3.0".  We send the same value.
+_STAINLESS_NODE_VERSION = "v24.3.0"
 
 # Additional beta flags the OAuth path needs on top of hermes-agent's built-in
 # ``claude-code-20250219`` and ``oauth-2025-04-20``.  These are appended to
